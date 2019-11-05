@@ -261,9 +261,34 @@ BEGIN
 	DECLARE @ratio float = CAST(@monthsBetween AS float) / CAST(36 AS float)
 	RETURN CAST((@purchaseCost - (@ratio * @purchaseCost)) AS money)
 END
-GO
---drop function dbo.RSE_CalcCompValue -- Remove function
+--drop function dbo.RSE_CalcCompValue
 --SELECT dbo.RSE_CalcCompValue('2018-04-16', 1500) -- TEST: Should return 1500 - (18/36)(1500) = 750
+
+GO -- This function returns the average salary for a given employee level
+CREATE FUNCTION RSE_CalcAvgSalary(
+	@employeeLevelKey int
+)
+RETURNS money AS
+BEGIN
+	DECLARE @empCount int = (
+		SELECT 
+			COUNT(EJ.EmployeeJobKey)
+		FROM
+			EmployeeJobs AS EJ
+		WHERE
+			EJ.EmployeeLevelKey = @employeeLevelKey
+		)
+	DECLARE @empSalaryTotal money = (
+		SELECT
+			SUM(EJ.Salary)
+		FROM
+			EmployeeJobs AS EJ
+		WHERE 
+			EJ.EmployeeJobKey = @employeeLevelKey
+	)
+	RETURN CAST((@empSalaryTotal / @empCount) AS money)
+END
+--drop function dbo.RSE_CalcAvgSalary
 
 /*
  - Views that need to be written
