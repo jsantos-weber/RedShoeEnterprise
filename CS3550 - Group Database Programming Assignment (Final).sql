@@ -250,6 +250,7 @@ All the things you have to get done...
 		Use only current salaries.  This will also be a scalar function and
 		will be used in queries further on.
 */
+
 GO -- This function returns the value of the computer
 CREATE FUNCTION RSE_CalcCompValue(
 	@purchaseDate date,
@@ -323,8 +324,18 @@ END
 		from above)
 	- Also at our fun company, no computer can cost more than 10k.  
 */
+
+--Ensures ComputerDetails contains properly formatted JSON:
 ALTER TABLE Computers
-ADD CHECK (ISJSON(ComputerDetails)= true)
+ADD CHECK (ISJSON(ComputerDetails) > 0)
+
+--Ensures that (salary < (0.15 * AverageSalary) + AverageSalary):
+ALTER TABLE EmployeeJobs
+ADD CHECK (Salary < (0.15 * RSE_CalcAvgSalary(EmployeeLevelKey)  + RSE_CalcAvgSalary(EmployeeLevelKey)))
+
+--Ensures that no computer costs > 10k:
+ALTER TABLE Computers
+ADD CHECK (PurchaseCost < 10000)
 /*
 - Queries to write
 
