@@ -281,7 +281,10 @@ All the things you have to get done...
 		average salary of everyone else at the same level (use your function
 		from above)
 	- Also at our fun company, no computer can cost more than 10k.  
-
+*/
+ALTER TABLE Computers
+ADD CHECK (ISJSON(ComputerDetails)= true)
+/*
 - Queries to write
 
 	-  A query that provides me the active employees for any date I want
