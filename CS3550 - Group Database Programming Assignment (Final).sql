@@ -249,7 +249,48 @@ All the things you have to get done...
 	- A function that returns the average salary for a given employee level.
 		Use only current salaries.  This will also be a scalar function and
 		will be used in queries further on.
+*/
+GO -- This function returns the value of the computer
+CREATE FUNCTION RSE_CalcCompValue(
+	@purchaseDate date,
+	@purchaseCost money
+)
+RETURNS money AS
+BEGIN
+	DECLARE @monthsBetween int = DATEDIFF(MONTH, @purchaseDate, GETDATE())
+	DECLARE @ratio float = CAST(@monthsBetween AS float) / CAST(36 AS float)
+	RETURN CAST((@purchaseCost - (@ratio * @purchaseCost)) AS money)
+END
+--drop function dbo.RSE_CalcCompValue
+--SELECT dbo.RSE_CalcCompValue('2018-04-16', 1500) -- TEST: Should return 1500 - (18/36)(1500) = 750
 
+GO -- This function returns the average salary for a given employee level
+CREATE FUNCTION RSE_CalcAvgSalary(
+	@employeeLevelKey int
+)
+RETURNS money AS
+BEGIN
+	DECLARE @empCount int = (
+		SELECT 
+			COUNT(EJ.EmployeeJobKey)
+		FROM
+			EmployeeJobs AS EJ
+		WHERE
+			EJ.EmployeeLevelKey = @employeeLevelKey
+		)
+	DECLARE @empSalaryTotal money = (
+		SELECT
+			SUM(EJ.Salary)
+		FROM
+			EmployeeJobs AS EJ
+		WHERE 
+			EJ.EmployeeJobKey = @employeeLevelKey
+	)
+	RETURN CAST((@empSalaryTotal / @empCount) AS money)
+END
+--drop function dbo.RSE_CalcAvgSalary
+
+/*
  - Views that need to be written
  
 	 - A list of all active computers (i.e. exclude lost and retired).  Include
