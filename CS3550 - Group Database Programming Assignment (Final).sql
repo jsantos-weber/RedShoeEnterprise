@@ -1,4 +1,4 @@
-CREATE TABLE Departments
+/*CREATE TABLE Departments
 (
 	DepartmentKey int IDENTITY(1,1) PRIMARY KEY NOT NULL,
 	Department varchar(255)
@@ -175,7 +175,7 @@ ALTER TABLE EmployeeComputers
 	FOREIGN KEY (ComputerKey)
 	REFERENCES Computers (ComputerKey)
 GO
-
+*/
 
 
 /*
@@ -217,8 +217,8 @@ All the things you have to get done...
 
  - Stored procedures that accomplish the following things:
 
-	- Create new departments
-	- Update the name of existing departments
+	- Create new departments (DONE)
+	- Update the name of existing departments (DONE)
 	- Create new employees.  Every new employee has to have a job.  Job
 		information is stored in "EmployeeJobs".  Make sure you trap
 		errors and prevent orphan records in the Employees table.
@@ -300,6 +300,62 @@ GO
 --DECLARE @test int
 --EXEC RSE_SP_UpdateDepartment 'Finance', 'Financing', @test;
 
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@NewDepartmentName varchar(255)
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	SET @EmployeeKey = 0;
+		SELECT
+			@EmployeeKey = EmployeeKey
+		FROM
+			Employees
+		WHERE
+			FirstName = @FirstName
+			AND LastName = @LastName
+	IF @EmployeeKey = 0
+	BEGIN
+		PRINT('Employee: ' + @FirstName + ' ' + @LastName + ' Was not found. Update terminated.')
+	END
+	ELSE
+	BEGIN
+		DECLARE @NewDepartmentKey int;
+		SET @NewDepartmentKey = 0;
+			SELECT
+				@NewDepartmentKey = DepartmentKey
+			FROM
+				Departments
+			WHERE
+				@NewDepartmentName = Department
+		IF @NewDepartmentKey = 0
+		BEGIN
+			PRINT('Department: ' + @NewDepartmentName + ' Was not found. Update terminated.')
+		END
+		ELSE
+		BEGIN
+			BEGIN TRY
+				UPDATE dbo.Employees
+				SET DepartmentKey = @NewDepartmentKey
+				WHERE EmployeeKey = @EmployeeKey
+				PRINT('Changed Employee ' + @FirstName + @LastName + ' Department to ' + @NewDepartmentName)
+			END TRY
+			BEGIN CATCH
+				PRINT('UPDATE Employee FAILED. Failed to update ' + @FirstName + ' ' + @LastName + 's department to ' + @NewDepartmentName)
+			END CATCH
+		END
+	END
+END
+GO
+
+--Testing invalid name and department.
+/*
+EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'Business Intelligence';
+EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barned', 'Information Technology';
+EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'New Department';
+EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'Information Technology';
+*/
 
 /*
 - Functions to write
@@ -325,7 +381,7 @@ GO
 		their current salary, their current title, the date they last
 		recieved their last increase (if any), and the percentage increase 
 		that raise was
-
+		
  - Triggers that need to be written
 
 	- I don't trust people when they have full access to my database.  Write
