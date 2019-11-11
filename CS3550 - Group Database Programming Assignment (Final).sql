@@ -239,6 +239,7 @@ All the things you have to get done...
 		a computer that still has some value left (has to be put back 
 		in inventory or reported as lost).
 */
+
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeKey
 	@FirstName varchar(255),
 	@LastName varchar(255),
@@ -294,6 +295,44 @@ BEGIN
 	IF @EmployeeLevelKey = 0
 	BEGIN
 		PRINT('No Employee Level called ' + @EmployeeLevel + ' Found.')
+	END
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetComputerTypeKey
+	@ComputerType varchar(25),
+	@ComputerTypeKey int OUTPUT
+AS
+BEGIN
+	SET @ComputerTypeKey = 0;
+		SELECT
+			@ComputerTypeKey = ComputerTypeKey
+		FROM
+			ComputerTypes
+		WHERE
+			ComputerType = @ComputerType
+	IF @ComputerTypeKey = 0
+	BEGIN
+		PRINT('No computer type called ' + @ComputerType + ' Found.')
+	END
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetComputerStatusKey
+	@ComputerStatus varchar(50),
+	@ComputerStatusKey int OUTPUT
+AS
+BEGIN
+	SET @ComputerStatusKey = -1;
+		SELECT
+			@ComputerStatusKey = ComputerStatusKey
+		FROM
+			ComputerStatuses
+		WHERE
+			ComputerStatus = @ComputerStatus
+	IF @ComputerStatusKey = -1
+	BEGIN
+		PRINT('No computer status called ' + @ComputerStatus + ' found.')
 	END
 END
 GO
@@ -474,6 +513,66 @@ EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barned', 'Information Technology';
 EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'New Department';
 EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'Information Technology';
 */
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_ReturnComputer
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@ComputerType varchar(25),
+	@ReturnComputerIndex int = 1
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey;
+	DECLARE @ComputerTypeKey int;
+	EXEC RSE_SP_GetComputerTypeKey @ComputerType, @ComputerTypeKey
+	DECLARE @AssignedStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @AssignedStatus
+	DECLARE @AvailableStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Available', @AvailableStatus
+
+	SET NOCOUNT ON;
+	SET XACT_ABORT ON;
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @ModifiedComputerKey int;
+		SET @ModifiedComputerKey = (
+			SELECT
+			LEAD(AssignedKeys.ComputerKey, @ReturnComputerIndex, -1)
+			FROM
+				(
+				SELECT
+					ComputerKey
+				FROM
+					EmployeeComputers
+				WHERE
+					EmployeeKey = @EmployeeKey
+					AND Returned IS NULL
+				) AS AssignedKeys
+				INNER JOIN Computers AS c ON AssignedKeys.ComputerKey = c.ComputerKey
+			WHERE ComputerTypeKey = @ComputerTypeKey
+			AND ComputerStatusKey = @AssignedStatus)
+		IF @ModifiedComputerKey != -1
+		BEGIN
+			UPDATE dbo.Computers
+			SET ComputerStatusKey = @AvailableStatus
+			WHERE ComputerKey = @ModifiedComputerKey
+
+			UPDATE dbo.EmployeeComputers
+			SET Returned = GETDATE()
+			WHERE ComputerKey = @ModifiedComputerKey
+		END
+		ELSE
+		BEGIN
+			PRINT('Failed to select a valid computer to return.')
+		END
+		COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT('Failed to insert. Transaction rolled back.')
+	END CATCH
+END
+GO
 
 --Retrieves the first available computer of type Available
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetFirstAvailableComputerKey
