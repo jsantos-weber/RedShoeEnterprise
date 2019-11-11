@@ -243,100 +243,140 @@ All the things you have to get done...
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeKey
 	@FirstName varchar(255),
 	@LastName varchar(255),
-	@EmployeeKey int OUTPUT
+	@EmployeeKeyOut int OUTPUT
 AS
 BEGIN
-	SET @EmployeeKey = 0;
+	SET @EmployeeKeyOut = 0;
 		SELECT
-			@EmployeeKey = EmployeeKey
+			@EmployeeKeyOut = EmployeeKey
 		FROM
 			Employees
 		WHERE
 			FirstName = @FirstName
 			AND LastName = @LastName
-	IF @EmployeeKey = 0
+	IF @EmployeeKeyOut = 0
 	BEGIN
-		PRINT('Employee: ' + @FirstName + ' ' + @LastName + ' Was not found. Update terminated.')
+		PRINT('Employee: ' + @FirstName + ' ' + @LastName + ' Was not found.')
 	END
 END
 GO
 
+PRINT('GetEmployeeKey Test')
+DECLARE @EmployeeKeyTest int;
+EXEC RSE_SP_GetEmployeeKey 'Eric', 'Barnes', @EmployeeKeyOut = @EmployeeKeyTest OUTPUT;
+PRINT(@EmployeeKeyTest)
+GO
+
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetDeparmentKey
 	@Department varchar(255),
-	@DepartmentKey int OUTPUT
+	@DepartmentKeyOut int OUTPUT
 AS
 BEGIN
-	SET @DepartmentKey = 0;
+	SET @DepartmentKeyOut = 0;
 		SELECT
-			@DepartmentKey = DepartmentKey
+			@DepartmentKeyOut = DepartmentKey
 		FROM
 			Departments
 		WHERE
 			Department = @Department
-	IF @DepartmentKey = 0
+	IF @DepartmentKeyOut = 0
 	BEGIN
 		PRINT('No department called ' + @Department + ' Found.')
 	END
 END
 GO
 
+PRINT('GetDepartmentKey Test')
+DECLARE @DepartmentKeyTest int;
+EXEC RSE_SP_GetDeparmentKey 'Business Intelligence', @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+PRINT(@DepartmentKeyTest)
+EXEC RSE_SP_GetDeparmentKey 'Fince', @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+PRINT(@DepartmentKeyTest)
+GO
+
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeLevelKey
 	@EmployeeLevel varchar(255),
-	@EmployeeLevelKey INT
+	@EmployeeLevelKeyOut INT OUTPUT
 AS
 BEGIN
-	SET @EmployeeLevelKey = 0;
+	SET @EmployeeLevelKeyOut = 0;
 		SELECT
-			@EmployeeLevelKey = EmployeeLevelKey
+			@EmployeeLevelKeyOut = EmployeeLevelKey
 		FROM
 			EmployeeLevels
 		WHERE
 			EmployeeLevel = @EmployeeLevel
-	IF @EmployeeLevelKey = 0
+	IF @EmployeeLevelKeyOut = 0
 	BEGIN
 		PRINT('No Employee Level called ' + @EmployeeLevel + ' Found.')
 	END
 END
 GO
 
+PRINT('GetEmployeeLevelKey Test')
+DECLARE @EmployeeLevelKeyTest int;
+EXEC RSE_SP_GetEmployeeLevelKey 'Grunt', @EmployeeLevelKeyOut = @EmployeeLevelKeyTest OUTPUT;
+PRINT(@EmployeeLevelKeyTest)
+EXEC RSE_SP_GetEmployeeLevelKey 'Boss', @EmployeeLevelKeyOut = @EmployeeLevelKeyTest OUTPUT;
+PRINT(@EmployeeLevelKeyTest)
+GO
+
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetComputerTypeKey
 	@ComputerType varchar(25),
-	@ComputerTypeKey int OUTPUT
+	@ComputerTypeKeyOut int OUTPUT
 AS
 BEGIN
-	SET @ComputerTypeKey = 0;
+	SET @ComputerTypeKeyOut = 0;
 		SELECT
-			@ComputerTypeKey = ComputerTypeKey
+			@ComputerTypeKeyOut = ComputerTypeKey
 		FROM
 			ComputerTypes
 		WHERE
 			ComputerType = @ComputerType
-	IF @ComputerTypeKey = 0
+	IF @ComputerTypeKeyOut = 0
 	BEGIN
 		PRINT('No computer type called ' + @ComputerType + ' Found.')
 	END
 END
 GO
 
+PRINT('GetComputerTypeKey Test')
+DECLARE @ComputerTypeKeyTest int;
+EXEC RSE_SP_GetComputerTypeKey 'Desktop', @ComputerTypeKeyOut = @ComputerTypeKeyTest OUTPUT;
+PRINT(@ComputerTypeKeyTest)
+EXEC RSE_SP_GetComputerTypeKey 'Desk', @ComputerTypeKeyOut = @ComputerTypeKeyTest OUTPUT;
+PRINT(@ComputerTypeKeyTest)
+GO
+
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetComputerStatusKey
 	@ComputerStatus varchar(50),
-	@ComputerStatusKey int OUTPUT
+	@ComputerStatusKeyOut int OUTPUT
 AS
 BEGIN
-	SET @ComputerStatusKey = -1;
+	SET @ComputerStatusKeyOut = -1;
 		SELECT
-			@ComputerStatusKey = ComputerStatusKey
+			@ComputerStatusKeyOut = ComputerStatusKey
 		FROM
 			ComputerStatuses
 		WHERE
 			ComputerStatus = @ComputerStatus
-	IF @ComputerStatusKey = -1
+	IF @ComputerStatusKeyOut = -1
 	BEGIN
 		PRINT('No computer status called ' + @ComputerStatus + ' found.')
 	END
 END
 GO
 
+PRINT('GetComputerStatusKey Test')
+DECLARE @ComputerStatusKeyTest int;
+EXEC RSE_SP_GetComputerStatusKey 'New', @ComputerStatusKeyOut = @ComputerStatusKeyTest OUTPUT;
+PRINT(@ComputerStatusKeyTest)
+EXEC RSE_SP_GetComputerStatusKey 'Old', @ComputerStatusKeyOut = @ComputerStatusKeyTest OUTPUT;
+PRINT(@ComputerStatusKeyTest)
+GO
+
+
+-------------------------------------------------------
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateDepartment
 	@DepartmentName varchar(255),
 	@DepartmentKey int OUTPUT
@@ -361,7 +401,7 @@ GO
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateDepartment
 	@OldDepartmentName varchar(255),
 	@NewDepartmentName varchar(255),
-	@DepartmentKey int OUTPUT
+	@DepartmentKeyOut int OUTPUT
 AS
 BEGIN
 	DECLARE @currentDepartmentKey int;
@@ -385,7 +425,7 @@ BEGIN
 			SET Department = @NewDepartmentName
 			WHERE
 				DepartmentKey = @currentDepartmentKey
-			SET @DepartmentKey = @currentDepartmentKey
+			SET @DepartmentKeyOut = @currentDepartmentKey
 		END TRY
 		BEGIN CATCH
 			PRINT('UPDATE Department FAILED')
@@ -396,7 +436,8 @@ BEGIN
 END
 GO
 --DECLARE @test int
---EXEC RSE_SP_UpdateDepartment 'Finance', 'Financing', @test;
+--EXEC RSE_SP_UpdateDepartment 'Finance', 'Financing', @DepartmentKeyOut = @test OUTPUT;
+--EXEC RSE_SP_UpdateDepartment 'Financing', 'Finance', @DepartmentKeyOut = @test OUTPUT;
 
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateEmployee
 	@LastName varchar(255),
@@ -412,11 +453,11 @@ CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateEmployee
 AS
 BEGIN
 	DECLARE @SupervisorKey int;
-	EXEC dbo.RSE_SP_GetEmployeeKey @SupervisorFirstName, @SupervisorLastName, @SupervisorKey;
+	EXEC dbo.RSE_SP_GetEmployeeKey @SupervisorFirstName, @SupervisorLastName, @EmployeeKeyOut = @SupervisorKey OUTPUT;
 	DECLARE @DepartmentKey int;
-	EXEC dbo.RSE_SP_GetDeparmentKey @DepartmentName, @DepartmentKey;
+	EXEC dbo.RSE_SP_GetDeparmentKey @DepartmentName, @DepartmentKeyOut = @DepartmentKey OUTPUT;
 	DECLARE @EmployeeLevelKey int;
-	EXEC dbo.RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKey;
+	EXEC dbo.RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKeyOut = @EmployeeLevelKey OUTPUT;
 
 	BEGIN TRY
 		SET NOCOUNT ON;
@@ -476,50 +517,74 @@ CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeJob
 	@SupervisorLastName varchar(255),
 	@Salary money,
 	@Title varchar(50),
-	@JobStartDate date = GETDATE,
-	@JobEndDate date
+	@StartDate date = NULL,
+	@EndDate date = NULL
 AS
 BEGIN
 	DECLARE @EmployeeKey int;
-	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT;
 	DECLARE @SupervisorKey int;
-	EXEC RSE_SP_GetEmployeeKey @SupervisorFirstName, @SupervisorLastName, @SupervisorKey;
+	EXEC RSE_SP_GetEmployeeKey @SupervisorFirstName, @SupervisorLastName, @EmployeeKeyOut = @SupervisorKey OUTPUT;
 	DECLARE @EmployeeLevelKey int;
-	EXEC RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKey;
+	EXEC RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKeyOut = @EmployeeLevelKey OUTPUT;
+	IF @StartDate IS NULL
+	BEGIN
+		SET @StartDate = GETDATE()
+	END
+	IF @EndDate IS NULL
+	BEGIN
+		SET @EndDate = GETDATE()-1
+	END
 
-	BEGIN TRY
-		UPDATE EmployeeJobs
-		SET JobFinish = @JobEndDate
-		WHERE EmployeeKey = @EmployeeKey
-			AND JobFinish IS NULL
-		
-		INSERT INTO EmployeeJobs
-		(
-			EmployeeKey,
-			EmployeeLevelKey,
-			JobStart,
-			Title,
-			SupervisorEmployeeKey,
-			Salary
-		)
-		VALUES
-		(
-			@EmployeeKey,
-			@EmployeeLevelKey,
-			@JobStartDate,
-			@Title,
-			@SupervisorKey,
-			@Salary
-		)
-	END TRY
-	BEGIN CATCH
-		PRINT('Updating job failed')
-	END CATCH
+	IF @EmployeeKey > 0
+	AND @SupervisorKey > 0
+	AND @EmployeeLevelKey > 0
+	BEGIN
+		BEGIN TRY
+			UPDATE EmployeeJobs
+			SET JobFinish = @EndDate
+			WHERE EmployeeKey = @EmployeeKey
+				AND JobFinish IS NULL
+			
+			INSERT INTO EmployeeJobs
+			(
+				EmployeeKey,
+				EmployeeLevelKey,
+				JobStart,
+				Title,
+				SupervisorEmployeeKey,
+				Salary
+			)
+			VALUES
+			(
+				@EmployeeKey,
+				@EmployeeLevelKey,
+				@StartDate,
+				@Title,
+				@SupervisorKey,
+				@Salary
+			)
+		END TRY
+		BEGIN CATCH
+			PRINT('Updating EmployeeJob Failed!')
+		END CATCH
+	END
+	ELSE IF @EmployeeKey <= 0
+	OR @SupervisorKey <= 0
+	BEGIN
+		PRINT('Employee Name and/or Supervisor Name invalid. Update EmployeeJob terminated')
+	END
+	ELSE IF @EmployeeLevelKey <= 0 OR @EmployeeLevelKey IS NULL
+	BEGIN
+		PRINT('EmployeeLevel specified invalid. Update EmployeeJob terminated.')
+	END
 END
 GO
 
 --Testing
-
+DECLARE @Test int;
+EXEC RSE_SP_UpdateEmployeeJob 'Eric', 'Barnes', 'Grunt', 'Russell', 'Reed', 55000, 'Developer 2'
+GO
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
 	@FirstName varchar(255),
 	@LastName varchar(255),
@@ -527,7 +592,7 @@ CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
 AS
 BEGIN
 	DECLARE @EmployeeKey int;
-	EXEC dbo.RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey
+	EXEC dbo.RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT
 	IF @EmployeeKey != 0
 	BEGIN
 		DECLARE @NewDepartmentKey int;
@@ -574,13 +639,13 @@ CREATE OR ALTER PROCEDURE dbo.RSE_SP_ReturnComputer
 AS
 BEGIN
 	DECLARE @EmployeeKey int;
-	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT;
 	DECLARE @ComputerTypeKey int;
-	EXEC RSE_SP_GetComputerTypeKey @ComputerType, @ComputerTypeKey
+	EXEC RSE_SP_GetComputerTypeKey @ComputerType, @ComputerTypeKeyOut = @ComputerTypeKey OUTPUT;
 	DECLARE @AssignedStatus int;
-	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @AssignedStatus
+	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @ComputerStatusKeyOut = @AssignedStatus OUTPUT
 	DECLARE @AvailableStatus int;
-	EXEC RSE_SP_GetComputerStatusKey 'Available', @AvailableStatus
+	EXEC RSE_SP_GetComputerStatusKey 'Available', @ComputerStatusKeyOut = @AvailableStatus OUTPUT
 
 	SET NOCOUNT ON;
 	SET XACT_ABORT ON;
@@ -633,11 +698,11 @@ CREATE OR ALTER PROCEDURE dbo.RSE_SP_TerminateEmployee
 AS
 BEGIN
 	DECLARE @EmployeeKey int;
-	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT;
 	DECLARE @AssignedStatus int;
-	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @AssignedStatus
+	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @ComputerStatusKeyOut = @AssignedStatus OUTPUT;
 	DECLARE @AvailableStatus int;
-	EXEC RSE_SP_GetComputerStatusKey 'Available', @AvailableStatus
+	EXEC RSE_SP_GetComputerStatusKey 'Available', @ComputerStatusKeyOut = @AvailableStatus OUTPUT;
 	SET NOCOUNT ON;
 	SET XACT_ABORT ON;
 	BEGIN TRANSACTION
@@ -748,7 +813,7 @@ BEGIN
 	DECLARE @ComputerKey int;
 	EXEC dbo.RSE_SP_GetFirstAvailableComputerKey @ComputerType, @ComputerKey
 	DECLARE @EmployeeKey int;
-	EXEC dbo.RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey
+	EXEC dbo.RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT
 	DECLARE @EmployeeComputerKey int;
 	IF @ComputerKey >= 0 AND @EmployeeKey > 0
 	BEGIN
