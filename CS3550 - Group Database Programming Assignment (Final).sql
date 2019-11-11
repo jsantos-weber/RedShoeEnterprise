@@ -226,7 +226,7 @@ All the things you have to get done...
 		a new record for that employee in the EmployeeJobs table.  This
 		would include changing their title, salary, or supervisor.  This
 		can be one or many stored procedures
-	- Update an employees department
+	- Update an employees department (DONE)
 	- Terminate an employee.  When an employee is terminated, their
 		computer equipment is returned to the company.  Their job
 		record is also ended.
@@ -300,13 +300,12 @@ GO
 --DECLARE @test int
 --EXEC RSE_SP_UpdateDepartment 'Finance', 'Financing', @test;
 
-CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
-	@FirstName varchar(255),
-	@LastName varchar(255),
-	@NewDepartmentName varchar(255)
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeKey
+	@FirstName nvarchar(255),
+	@LastName nvarchar(255),
+	@EmployeeKey int OUTPUT
 AS
 BEGIN
-	DECLARE @EmployeeKey int;
 	SET @EmployeeKey = 0;
 		SELECT
 			@EmployeeKey = EmployeeKey
@@ -319,7 +318,19 @@ BEGIN
 	BEGIN
 		PRINT('Employee: ' + @FirstName + ' ' + @LastName + ' Was not found. Update terminated.')
 	END
-	ELSE
+END
+GO
+
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@NewDepartmentName varchar(255)
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC dbo.RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey
+	IF @EmployeeKey != 0
 	BEGIN
 		DECLARE @NewDepartmentKey int;
 		SET @NewDepartmentKey = 0;
@@ -357,6 +368,107 @@ EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'New Department';
 EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'Information Technology';
 */
 
+--Retrieves the first available computer of type Available
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetFirstAvailableComputerKey
+	@ComputerType varchar(25),
+	@ComputerKey int OUTPUT
+AS
+BEGIN
+	SET @ComputerKey = -1;
+	DECLARE @ComputerTypeKey int;
+	SET @ComputerTypeKey = 0;
+		SELECT
+			@ComputerTypeKey = ComputerTypeKey
+		FROM
+			ComputerTypes
+		WHERE
+			ComputerType = @ComputerType
+	IF @ComputerTypeKey = 0
+	BEGIN
+		PRINT('No Computer Type found of ' + @ComputerType)
+	END
+	ELSE
+	BEGIN
+		DECLARE @StatusAvailable int;
+		DECLARE @StatusNew int;
+		SELECT
+			@StatusAvailable = ComputerStatusKey
+		FROM
+			ComputerStatuses
+		WHERE
+			ComputerStatus = 'Available'
+
+		SELECT
+			@StatusNew = ComputerStatusKey
+		FROM
+			ComputerStatuses
+		WHERE
+			ComputerStatus = 'New'
+
+		SELECT
+			@ComputerKey = FIRST_VALUE(ComputerKey) OVER (ORDER BY ComputerStatusKey DESC)
+		FROM
+			Computers
+		WHERE
+			ComputerTypeKey = @ComputerTypeKey
+			AND ComputerStatusKey IN (@StatusAvailable, @StatusNew)
+		
+		IF @ComputerKey = -1
+		BEGIN
+			PRINT('No computer of Type ' + @ComputerType + ' found')
+		END
+	END
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_AssignComputer
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@ComputerType varchar(25)
+AS
+BEGIN
+	DECLARE @ComputerKey int;
+	EXEC dbo.RSE_SP_GetFirstAvailableComputerKey @ComputerType, @ComputerKey
+	DECLARE @EmployeeKey int;
+	EXEC dbo.RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey
+	DECLARE @EmployeeComputerKey int;
+	IF @ComputerKey >= 0 AND @EmployeeKey > 0
+	BEGIN
+		BEGIN TRY
+			INSERT INTO EmployeeComputers
+			(
+				EmployeeKey,
+				ComputerKey,
+				Assigned
+			)
+			VALUES
+			(
+				@EmployeeKey,
+				@ComputerKey,
+				GETDATE()
+			)
+
+			BEGIN TRY
+				UPDATE dbo.Computers
+				SET ComputerStatusKey = (
+					SELECT
+						ComputerStatusKey
+					FROM
+						ComputerStatuses
+					WHERE
+						ComputerStatus = 'Assigned')
+				WHERE ComputerKey = @ComputerKey
+			END TRY
+			BEGIN CATCH
+				PRINT('FAILED to update Computers Status')
+			END CATCH
+		END TRY
+		BEGIN CATCH
+			PRINT('INSERT INTO EmployeeComputers FAILED. Computer Type: ' + @ComputerType)
+		END CATCH
+	END
+END
+GO
 /*
 - Functions to write
 
