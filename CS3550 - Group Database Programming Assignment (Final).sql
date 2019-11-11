@@ -221,7 +221,7 @@ All the things you have to get done...
 	- Update the name of existing departments (DONE)
 	- Create new employees.  Every new employee has to have a job.  Job
 		information is stored in "EmployeeJobs".  Make sure you trap
-		errors and prevent orphan records in the Employees table.
+		errors and prevent orphan records in the Employees table. (DONE)
 	- Update an employees job.  Any update to a job should generate
 		a new record for that employee in the EmployeeJobs table.  This
 		would include changing their title, salary, or supervisor.  This
@@ -239,6 +239,65 @@ All the things you have to get done...
 		a computer that still has some value left (has to be put back 
 		in inventory or reported as lost).
 */
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeKey
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@EmployeeKey int OUTPUT
+AS
+BEGIN
+	SET @EmployeeKey = 0;
+		SELECT
+			@EmployeeKey = EmployeeKey
+		FROM
+			Employees
+		WHERE
+			FirstName = @FirstName
+			AND LastName = @LastName
+	IF @EmployeeKey = 0
+	BEGIN
+		PRINT('Employee: ' + @FirstName + ' ' + @LastName + ' Was not found. Update terminated.')
+	END
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetDeparmentKey
+	@Department varchar(255),
+	@DepartmentKey int OUTPUT
+AS
+BEGIN
+	SET @DepartmentKey = 0;
+		SELECT
+			@DepartmentKey = DepartmentKey
+		FROM
+			Departments
+		WHERE
+			Department = @Department
+	IF @DepartmentKey = 0
+	BEGIN
+		PRINT('No department called ' + @Department + ' Found.')
+	END
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeLevelKey
+	@EmployeeLevel varchar(255),
+	@EmployeeLevelKey INT
+AS
+BEGIN
+	SET @EmployeeLevelKey = 0;
+		SELECT
+			@EmployeeLevelKey = EmployeeLevelKey
+		FROM
+			EmployeeLevels
+		WHERE
+			EmployeeLevel = @EmployeeLevel
+	IF @EmployeeLevelKey = 0
+	BEGIN
+		PRINT('No Employee Level called ' + @EmployeeLevel + ' Found.')
+	END
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateDepartment
 	@DepartmentName varchar(255),
 	@DepartmentKey int OUTPUT
@@ -300,27 +359,75 @@ GO
 --DECLARE @test int
 --EXEC RSE_SP_UpdateDepartment 'Finance', 'Financing', @test;
 
-CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeKey
-	@FirstName nvarchar(255),
-	@LastName nvarchar(255),
-	@EmployeeKey int OUTPUT
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateEmployee
+	@LastName varchar(255),
+	@FirstName varchar(255),
+	@Email varchar(50),
+	@Hired date,
+	@DepartmentName varchar(255),
+	@SupervisorLastName varchar(255),
+	@SupervisorFirstName varchar(255),
+	@JobTitle varchar(50),
+	@EmployeeLevel varchar(255),
+	@Salary money
 AS
 BEGIN
-	SET @EmployeeKey = 0;
-		SELECT
-			@EmployeeKey = EmployeeKey
-		FROM
-			Employees
-		WHERE
-			FirstName = @FirstName
-			AND LastName = @LastName
-	IF @EmployeeKey = 0
-	BEGIN
-		PRINT('Employee: ' + @FirstName + ' ' + @LastName + ' Was not found. Update terminated.')
-	END
+	DECLARE @SupervisorKey int;
+	EXEC dbo.RSE_SP_GetEmployeeKey @SupervisorFirstName, @SupervisorLastName, @SupervisorKey;
+	DECLARE @DepartmentKey int;
+	EXEC dbo.RSE_SP_GetDeparmentKey @DepartmentName, @DepartmentKey;
+	DECLARE @EmployeeLevelKey int;
+	EXEC dbo.RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKey;
+
+	BEGIN TRY
+		SET NOCOUNT ON;
+		SET XACT_ABORT ON;
+		BEGIN TRANSACTION
+			INSERT INTO dbo.Employees
+			(
+				LastName,
+				FirstName,
+				Email,
+				Hired,
+				DepartmentKey,
+				CurrentSupervisorEmployeeKey
+			)
+			VALUES
+			(
+				@LastName,
+				@FirstName,
+				@Email,
+				@Hired,
+				@DepartmentKey,
+				@SupervisorKey
+			)
+
+			INSERT INTO dbo.EmployeeJobs
+			(
+				EmployeeKey,
+				EmployeeLevelKey,
+				JobStart,
+				Title,
+				SupervisorEmployeeKey,
+				Salary
+			)
+			VALUES
+			(
+				SCOPE_IDENTITY(),
+				@EmployeeLevelKey,
+				GETDATE(),
+				@JobTitle,
+				@SupervisorKey,
+				@Salary
+			)
+		COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT('Employee Insertion FAILED. Transactions rolled back.')
+	END CATCH
 END
 GO
-
 
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
 	@FirstName varchar(255),
@@ -469,6 +576,8 @@ BEGIN
 	END
 END
 GO
+
+
 /*
 - Functions to write
 
