@@ -518,6 +518,8 @@ BEGIN
 END
 GO
 
+--Testing
+
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
 	@FirstName varchar(255),
 	@LastName varchar(255),
@@ -587,7 +589,7 @@ BEGIN
 		DECLARE @ModifiedComputerKey int;
 		SET @ModifiedComputerKey = (
 			SELECT
-			LEAD(AssignedKeys.ComputerKey, @ReturnComputerIndex, -1)
+			LEAD(AssignedKeys.ComputerKey, @ReturnComputerIndex, -1) OVER (ORDER BY ComputerTypeKey) AS 'ReturnKey'
 			FROM
 				(
 				SELECT
@@ -653,7 +655,7 @@ BEGIN
 			DECLARE @UpdateKey int;
 			SET @UpdateKey = (
 				SELECT 
-					FIRST_VALUE(ComputerKey)
+					FIRST_VALUE(ComputerKey) OVER (ORDER BY EmployeeKey)
 				FROM 
 					EmployeeComputers 
 				WHERE
