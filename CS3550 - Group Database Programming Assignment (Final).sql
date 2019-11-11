@@ -225,11 +225,11 @@ All the things you have to get done...
 	- Update an employees job.  Any update to a job should generate
 		a new record for that employee in the EmployeeJobs table.  This
 		would include changing their title, salary, or supervisor.  This
-		can be one or many stored procedures
+		can be one or many stored procedures (DONE NEEDS TESTING)
 	- Update an employees department (DONE)
 	- Terminate an employee.  When an employee is terminated, their
 		computer equipment is returned to the company.  Their job
-		record is also ended.
+		record is also ended. (DONE NEEDS TESTING)
 	- Add a new computer to the companies inventory.  The details of the computer
 		should be stored in the ComputerDetails field in JSON.  The details
 		should include, at a minimum, the brand, serial number, CPU,
@@ -468,6 +468,56 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeJob
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@EmployeeLevel varchar(255),
+	@SupervisorFirstName varchar(255),
+	@SupervisorLastName varchar(255),
+	@Salary money,
+	@Title varchar(50),
+	@JobStartDate date = GETDATE,
+	@JobEndDate date
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey;
+	DECLARE @SupervisorKey int;
+	EXEC RSE_SP_GetEmployeeKey @SupervisorFirstName, @SupervisorLastName, @SupervisorKey;
+	DECLARE @EmployeeLevelKey int;
+	EXEC RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKey;
+
+	BEGIN TRY
+		UPDATE EmployeeJobs
+		SET JobFinish = @JobEndDate
+		WHERE EmployeeKey = @EmployeeKey
+			AND JobFinish IS NULL
+		
+		INSERT INTO EmployeeJobs
+		(
+			EmployeeKey,
+			EmployeeLevelKey,
+			JobStart,
+			Title,
+			SupervisorEmployeeKey,
+			Salary
+		)
+		VALUES
+		(
+			@EmployeeKey,
+			@EmployeeLevelKey,
+			@JobStartDate,
+			@Title,
+			@SupervisorKey,
+			@Salary
+		)
+	END TRY
+	BEGIN CATCH
+		PRINT('Updating job failed')
+	END CATCH
+END
+GO
+
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
 	@FirstName varchar(255),
 	@LastName varchar(255),
@@ -570,6 +620,66 @@ BEGIN
 	BEGIN CATCH
 		ROLLBACK TRANSACTION
 		PRINT('Failed to insert. Transaction rolled back.')
+	END CATCH
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_TerminateEmployee
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@TerminationDate date = GETDATE
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKey;
+	DECLARE @AssignedStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @AssignedStatus
+	DECLARE @AvailableStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Available', @AvailableStatus
+	SET NOCOUNT ON;
+	SET XACT_ABORT ON;
+	BEGIN TRANSACTION
+	--TODO: Needs THOROUGH checking
+	BEGIN TRY
+		WHILE ((
+			SELECT 
+				* 
+			FROM 
+				EmployeeComputers 
+			WHERE
+				Returned IS NOT NULL
+				AND EmployeeKey = @EmployeeKey) IS NOT NULL)
+		BEGIN
+			DECLARE @UpdateKey int;
+			SET @UpdateKey = (
+				SELECT 
+					FIRST_VALUE(ComputerKey)
+				FROM 
+					EmployeeComputers 
+				WHERE
+					Returned IS NOT NULL
+					AND EmployeeKey = @EmployeeKey)
+
+			UPDATE dbo.Computers
+			SET ComputerStatusKey = @AvailableStatus
+			WHERE ComputerKey = @UpdateKey
+
+			UPDATE dbo.EmployeeComputers
+			SET Returned = GETDATE()
+			WHERE ComputerKey = @UpdateKey
+		END
+		UPDATE dbo.EmployeeJobs
+		SET JobFinish = @TerminationDate
+		WHERE EmployeeKey = @EmployeeKey
+
+		UPDATE dbo.Employees
+		SET Terminated = @TerminationDate
+		WHERE EmployeeKey = @EmployeeKey
+		COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT('Termination of ' + @FirstName + ' ' + @LastName + ' Failed.')
 	END CATCH
 END
 GO
