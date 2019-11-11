@@ -240,6 +240,12 @@ All the things you have to get done...
 		in inventory or reported as lost).
 */
 
+/*
+* GetEmployeeKey outputs 0 if no employee key was found,
+* else returns the EmployeeKey in @EmployeeKeyOut
+* 
+* To use this, format the assignment like: @EmployeeKeyOut = @EmployeeKeyTest OUTPUT;
+*/
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeKey
 	@FirstName varchar(255),
 	@LastName varchar(255),
@@ -267,6 +273,12 @@ EXEC RSE_SP_GetEmployeeKey 'Eric', 'Barnes', @EmployeeKeyOut = @EmployeeKeyTest 
 PRINT(@EmployeeKeyTest)
 GO
 
+/*
+* GetDeparmentKey outputs 0 if no Department key was found,
+* else returns the DepartmentKey in @DepartmentKeyOut
+* 
+* To use this, format the assignment like: @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+*/
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetDeparmentKey
 	@Department varchar(255),
 	@DepartmentKeyOut int OUTPUT
@@ -294,6 +306,12 @@ EXEC RSE_SP_GetDeparmentKey 'Fince', @DepartmentKeyOut = @DepartmentKeyTest OUTP
 PRINT(@DepartmentKeyTest)
 GO
 
+/*
+* GetEmployeeLevelKey outputs 0 if no EmployeeLevel key was found,
+* else returns the EmployeeLevelKey in @EmployeeLevelKeyOut
+* 
+* To use this, format the assignment like: @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+*/
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeLevelKey
 	@EmployeeLevel varchar(255),
 	@EmployeeLevelKeyOut INT OUTPUT
@@ -321,6 +339,12 @@ EXEC RSE_SP_GetEmployeeLevelKey 'Boss', @EmployeeLevelKeyOut = @EmployeeLevelKey
 PRINT(@EmployeeLevelKeyTest)
 GO
 
+/*
+* GetComputerTypeKey outputs 0 if no ComputerType key was found,
+* else returns the ComputerTypeKey in @ComputerTypeKeyOut
+* 
+* To use this, format the assignment like: @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+*/
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetComputerTypeKey
 	@ComputerType varchar(25),
 	@ComputerTypeKeyOut int OUTPUT
@@ -348,6 +372,12 @@ EXEC RSE_SP_GetComputerTypeKey 'Desk', @ComputerTypeKeyOut = @ComputerTypeKeyTes
 PRINT(@ComputerTypeKeyTest)
 GO
 
+/*
+* GetComputerStatusKey outputs -1 if no ComputerStatus key was found,
+* else returns the ComputerStatusKey in @ComputerStatusKeyOut
+* 
+* To use this, format the assignment like: @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+*/
 CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetComputerStatusKey
 	@ComputerStatus varchar(50),
 	@ComputerStatusKeyOut int OUTPUT
@@ -915,6 +945,14 @@ BEGIN
 END
 GO
 
+/*
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateComputer
+	@Brand varchar(50),
+	@SerialNumber varchar(20),
+	@CPU varchar(50),
+	@Memory varchar(5),
+	@StorageDevicesList varchar(255)
+*/
 
 /*
 - Functions to write
@@ -940,7 +978,9 @@ GO
 		their current salary, their current title, the date they last
 		recieved their last increase (if any), and the percentage increase 
 		that raise was
-		
+*/
+
+/*
  - Triggers that need to be written
 
 	- I don't trust people when they have full access to my database.  Write
