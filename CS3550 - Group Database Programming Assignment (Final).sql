@@ -260,6 +260,46 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateDepartment
+	@OldDepartmentName varchar(255),
+	@NewDepartmentName varchar(255),
+	@DepartmentKey int OUTPUT
+AS
+BEGIN
+	DECLARE @currentDepartmentKey int;
+	SET @currentDepartmentKey = 0;
+		SELECT 
+			@currentDepartmentKey = DepartmentKey
+		FROM 
+			Departments
+		WHERE
+			Department = @OldDepartmentName
+	IF @currentDepartmentKey = 0
+	BEGIN
+		PRINT('UPDATE DEPARTMENT FAILED!')
+		PRINT('Department name was invalid: ')
+		PRINT(@OldDepartmentName)
+	END
+	ELSE
+	BEGIN
+		BEGIN TRY
+			UPDATE dbo.Departments
+			SET Department = @NewDepartmentName
+			WHERE
+				DepartmentKey = @currentDepartmentKey
+			SET @DepartmentKey = @currentDepartmentKey
+		END TRY
+		BEGIN CATCH
+			PRINT('UPDATE Department FAILED')
+			PRINT('Department name failed was:')
+			PRINT(@NewDepartmentName)
+		END CATCH
+	END
+END
+GO
+--DECLARE @test int
+--EXEC RSE_SP_UpdateDepartment 'Finance', 'Financing', @test;
+
 
 /*
 - Functions to write
