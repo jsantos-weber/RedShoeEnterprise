@@ -853,6 +853,68 @@ BEGIN
 END
 GO
 
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_ReportLostComputer
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@ComputerType varchar(25),
+	@LostComputerIndex int = 1
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT;
+	DECLARE @ComputerTypeKey int;
+	EXEC RSE_SP_GetComputerTypeKey @ComputerType, @ComputerTypeKeyOut = @ComputerTypeKey OUTPUT;
+	DECLARE @AssignedStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @ComputerStatusKeyOut = @AssignedStatus OUTPUT
+	DECLARE @AvailableStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Available', @ComputerStatusKeyOut = @AvailableStatus OUTPUT
+	DECLARE @LostStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Lost', @ComputerStatusKeyOut = @LostStatus OUTPUT
+
+	SET NOCOUNT ON;
+	SET XACT_ABORT ON;
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @ModifiedComputerKey int;
+		SET @ModifiedComputerKey = (
+			SELECT
+			LEAD(AssignedKeys.ComputerKey, @LostComputerIndex, -1) OVER (ORDER BY ComputerTypeKey) AS 'ReturnKey'
+			FROM
+				(
+				SELECT
+					ComputerKey
+				FROM
+					EmployeeComputers
+				WHERE
+					EmployeeKey = @EmployeeKey
+					AND Returned IS NULL
+				) AS AssignedKeys
+				INNER JOIN Computers AS c ON AssignedKeys.ComputerKey = c.ComputerKey
+			WHERE ComputerTypeKey = @ComputerTypeKey
+			AND ComputerStatusKey = @AssignedStatus)
+		IF @ModifiedComputerKey != -1
+		BEGIN
+			UPDATE dbo.Computers
+			SET ComputerStatusKey = @LostStatus
+			WHERE ComputerKey = @ModifiedComputerKey
+
+			UPDATE dbo.EmployeeComputers
+			SET Returned = GETDATE()
+			WHERE ComputerKey = @ModifiedComputerKey
+		END
+		ELSE
+		BEGIN
+			PRINT('Failed to select a valid computer to return.')
+		END
+		COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT('Failed to insert. Transaction rolled back.')
+	END CATCH
+END
+GO
+
 
 /*
 - Functions to write
