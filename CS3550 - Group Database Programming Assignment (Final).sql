@@ -174,7 +174,7 @@ ALTER TABLE EmployeeComputers
 	ADD CONSTRAINT FK_EmployeeComputerComputer
 	FOREIGN KEY (ComputerKey)
 	REFERENCES Computers (ComputerKey)
-
+GO
 
 
 
@@ -238,7 +238,30 @@ All the things you have to get done...
 	- Assign/return/report lost/retire a computer.  You cannot retire
 		a computer that still has some value left (has to be put back 
 		in inventory or reported as lost).
+*/
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateDepartment
+	@DepartmentName varchar(255),
+	@DepartmentKey int OUTPUT
+AS
+BEGIN
+	BEGIN TRY
+		INSERT INTO dbo.Departments
+		(
+			Department
+		)
+		OUTPUT inserted.DepartmentKey
+		VALUES (@DepartmentName)
+	END TRY
+	BEGIN CATCH
+		PRINT('INSERT INTO dbo.Departments FAILED')
+		PRINT('Attempted to insert department name: ')
+		PRINT(@DepartmentName)
+	END CATCH
+END
+GO
 
+
+/*
 - Functions to write
 
 	- Write a function that calculates how much a computer is currently
