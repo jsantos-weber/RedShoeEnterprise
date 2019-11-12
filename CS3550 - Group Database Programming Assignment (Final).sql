@@ -738,9 +738,9 @@ BEGIN
 	BEGIN TRANSACTION
 	--TODO: Needs THOROUGH checking
 	BEGIN TRY
-		WHILE ((
+		WHILE ( ( 
 			SELECT 
-				* 
+				EmployeeKey 
 			FROM 
 				EmployeeComputers 
 			WHERE
