@@ -1182,10 +1182,12 @@ WHERE EmployeeKey = 3
 UPDATE Employees
 SET Terminated = '11/12/2019'
 WHERE EmployeeKey IN (9,10)
+
 --Have a computer be Lost
 UPDATE Computers
 SET ComputerStatusKey = 3
 WHERE ComputerKey = 3
+
 --Try to Delete all your managers, Make sure Trigger Fires
 --NOT DONE, NEED TO CHECK THE TRIGGER
 DELETE FROM Employees
