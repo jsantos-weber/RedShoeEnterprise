@@ -1,4 +1,4 @@
-CREATE TABLE Departments
+/*CREATE TABLE Departments
 (
 	DepartmentKey int IDENTITY(1,1) PRIMARY KEY NOT NULL,
 	Department varchar(255)
@@ -174,8 +174,8 @@ ALTER TABLE EmployeeComputers
 	ADD CONSTRAINT FK_EmployeeComputerComputer
 	FOREIGN KEY (ComputerKey)
 	REFERENCES Computers (ComputerKey)
-
-
+GO
+*/
 
 
 /*
@@ -217,19 +217,19 @@ All the things you have to get done...
 
  - Stored procedures that accomplish the following things:
 
-	- Create new departments
-	- Update the name of existing departments
+	- Create new departments (DONE)
+	- Update the name of existing departments (DONE)
 	- Create new employees.  Every new employee has to have a job.  Job
 		information is stored in "EmployeeJobs".  Make sure you trap
-		errors and prevent orphan records in the Employees table.
+		errors and prevent orphan records in the Employees table. (DONE)
 	- Update an employees job.  Any update to a job should generate
 		a new record for that employee in the EmployeeJobs table.  This
 		would include changing their title, salary, or supervisor.  This
-		can be one or many stored procedures
-	- Update an employees department
+		can be one or many stored procedures (DONE NEEDS TESTING)
+	- Update an employees department (DONE)
 	- Terminate an employee.  When an employee is terminated, their
 		computer equipment is returned to the company.  Their job
-		record is also ended.
+		record is also ended. (DONE NEEDS TESTING)
 	- Add a new computer to the companies inventory.  The details of the computer
 		should be stored in the ComputerDetails field in JSON.  The details
 		should include, at a minimum, the brand, serial number, CPU,
@@ -238,7 +238,723 @@ All the things you have to get done...
 	- Assign/return/report lost/retire a computer.  You cannot retire
 		a computer that still has some value left (has to be put back 
 		in inventory or reported as lost).
+*/
 
+/*
+* GetEmployeeKey outputs 0 if no employee key was found,
+* else returns the EmployeeKey in @EmployeeKeyOut
+* 
+* To use this, format the assignment like: @EmployeeKeyOut = @EmployeeKeyTest OUTPUT;
+*/
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeKey
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@EmployeeKeyOut int OUTPUT
+AS
+BEGIN
+	SET @EmployeeKeyOut = 0;
+		SELECT
+			@EmployeeKeyOut = EmployeeKey
+		FROM
+			Employees
+		WHERE
+			FirstName = @FirstName
+			AND LastName = @LastName
+	IF @EmployeeKeyOut = 0
+	BEGIN
+		PRINT('Employee: ' + @FirstName + ' ' + @LastName + ' Was not found.')
+	END
+END
+GO
+
+PRINT('GetEmployeeKey Test')
+DECLARE @EmployeeKeyTest int;
+EXEC RSE_SP_GetEmployeeKey 'Eric', 'Barnes', @EmployeeKeyOut = @EmployeeKeyTest OUTPUT;
+PRINT(@EmployeeKeyTest)
+GO
+
+/*
+* GetDeparmentKey outputs 0 if no Department key was found,
+* else returns the DepartmentKey in @DepartmentKeyOut
+* 
+* To use this, format the assignment like: @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+*/
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetDeparmentKey
+	@Department varchar(255),
+	@DepartmentKeyOut int OUTPUT
+AS
+BEGIN
+	SET @DepartmentKeyOut = 0;
+		SELECT
+			@DepartmentKeyOut = DepartmentKey
+		FROM
+			Departments
+		WHERE
+			Department = @Department
+	IF @DepartmentKeyOut = 0
+	BEGIN
+		PRINT('No department called ' + @Department + ' Found.')
+	END
+END
+GO
+
+PRINT('GetDepartmentKey Test')
+DECLARE @DepartmentKeyTest int;
+EXEC RSE_SP_GetDeparmentKey 'Business Intelligence', @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+PRINT(@DepartmentKeyTest)
+EXEC RSE_SP_GetDeparmentKey 'Fince', @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+PRINT(@DepartmentKeyTest)
+GO
+
+/*
+* GetEmployeeLevelKey outputs 0 if no EmployeeLevel key was found,
+* else returns the EmployeeLevelKey in @EmployeeLevelKeyOut
+* 
+* To use this, format the assignment like: @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+*/
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetEmployeeLevelKey
+	@EmployeeLevel varchar(255),
+	@EmployeeLevelKeyOut INT OUTPUT
+AS
+BEGIN
+	SET @EmployeeLevelKeyOut = 0;
+		SELECT
+			@EmployeeLevelKeyOut = EmployeeLevelKey
+		FROM
+			EmployeeLevels
+		WHERE
+			EmployeeLevel = @EmployeeLevel
+	IF @EmployeeLevelKeyOut = 0
+	BEGIN
+		PRINT('No Employee Level called ' + @EmployeeLevel + ' Found.')
+	END
+END
+GO
+
+PRINT('GetEmployeeLevelKey Test')
+DECLARE @EmployeeLevelKeyTest int;
+EXEC RSE_SP_GetEmployeeLevelKey 'Grunt', @EmployeeLevelKeyOut = @EmployeeLevelKeyTest OUTPUT;
+PRINT(@EmployeeLevelKeyTest)
+EXEC RSE_SP_GetEmployeeLevelKey 'Boss', @EmployeeLevelKeyOut = @EmployeeLevelKeyTest OUTPUT;
+PRINT(@EmployeeLevelKeyTest)
+GO
+
+/*
+* GetComputerTypeKey outputs 0 if no ComputerType key was found,
+* else returns the ComputerTypeKey in @ComputerTypeKeyOut
+* 
+* To use this, format the assignment like: @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+*/
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetComputerTypeKey
+	@ComputerType varchar(25),
+	@ComputerTypeKeyOut int OUTPUT
+AS
+BEGIN
+	SET @ComputerTypeKeyOut = 0;
+		SELECT
+			@ComputerTypeKeyOut = ComputerTypeKey
+		FROM
+			ComputerTypes
+		WHERE
+			ComputerType = @ComputerType
+	IF @ComputerTypeKeyOut = 0
+	BEGIN
+		PRINT('No computer type called ' + @ComputerType + ' Found.')
+	END
+END
+GO
+
+PRINT('GetComputerTypeKey Test')
+DECLARE @ComputerTypeKeyTest int;
+EXEC RSE_SP_GetComputerTypeKey 'Desktop', @ComputerTypeKeyOut = @ComputerTypeKeyTest OUTPUT;
+PRINT(@ComputerTypeKeyTest)
+EXEC RSE_SP_GetComputerTypeKey 'Desk', @ComputerTypeKeyOut = @ComputerTypeKeyTest OUTPUT;
+PRINT(@ComputerTypeKeyTest)
+GO
+
+/*
+* GetComputerStatusKey outputs -1 if no ComputerStatus key was found,
+* else returns the ComputerStatusKey in @ComputerStatusKeyOut
+* 
+* To use this, format the assignment like: @DepartmentKeyOut = @DepartmentKeyTest OUTPUT;
+*/
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetComputerStatusKey
+	@ComputerStatus varchar(50),
+	@ComputerStatusKeyOut int OUTPUT
+AS
+BEGIN
+	SET @ComputerStatusKeyOut = -1;
+		SELECT
+			@ComputerStatusKeyOut = ComputerStatusKey
+		FROM
+			ComputerStatuses
+		WHERE
+			ComputerStatus = @ComputerStatus
+	IF @ComputerStatusKeyOut = -1
+	BEGIN
+		PRINT('No computer status called ' + @ComputerStatus + ' found.')
+	END
+END
+GO
+
+PRINT('GetComputerStatusKey Test')
+DECLARE @ComputerStatusKeyTest int;
+EXEC RSE_SP_GetComputerStatusKey 'New', @ComputerStatusKeyOut = @ComputerStatusKeyTest OUTPUT;
+PRINT(@ComputerStatusKeyTest)
+EXEC RSE_SP_GetComputerStatusKey 'Old', @ComputerStatusKeyOut = @ComputerStatusKeyTest OUTPUT;
+PRINT(@ComputerStatusKeyTest)
+GO
+
+
+-------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateDepartment
+	@DepartmentName varchar(255),
+	@DepartmentKey int OUTPUT
+AS
+BEGIN
+	BEGIN TRY
+		INSERT INTO dbo.Departments
+		(
+			Department
+		)
+		OUTPUT inserted.DepartmentKey
+		VALUES (@DepartmentName)
+	END TRY
+	BEGIN CATCH
+		PRINT('INSERT INTO dbo.Departments FAILED')
+		PRINT('Attempted to insert department name: ')
+		PRINT(@DepartmentName)
+	END CATCH
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateDepartment
+	@OldDepartmentName varchar(255),
+	@NewDepartmentName varchar(255),
+	@DepartmentKeyOut int OUTPUT
+AS
+BEGIN
+	DECLARE @currentDepartmentKey int;
+	SET @currentDepartmentKey = 0;
+		SELECT 
+			@currentDepartmentKey = DepartmentKey
+		FROM 
+			Departments
+		WHERE
+			Department = @OldDepartmentName
+	IF @currentDepartmentKey = 0
+	BEGIN
+		PRINT('UPDATE DEPARTMENT FAILED!')
+		PRINT('Department name was invalid: ')
+		PRINT(@OldDepartmentName)
+	END
+	ELSE
+	BEGIN
+		BEGIN TRY
+			UPDATE dbo.Departments
+			SET Department = @NewDepartmentName
+			WHERE
+				DepartmentKey = @currentDepartmentKey
+			SET @DepartmentKeyOut = @currentDepartmentKey
+		END TRY
+		BEGIN CATCH
+			PRINT('UPDATE Department FAILED')
+			PRINT('Department name failed was:')
+			PRINT(@NewDepartmentName)
+		END CATCH
+	END
+END
+GO
+--DECLARE @test int
+--EXEC RSE_SP_UpdateDepartment 'Finance', 'Financing', @DepartmentKeyOut = @test OUTPUT;
+--EXEC RSE_SP_UpdateDepartment 'Financing', 'Finance', @DepartmentKeyOut = @test OUTPUT;
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateEmployee
+	@LastName varchar(255),
+	@FirstName varchar(255),
+	@Email varchar(50),
+	@Hired date,
+	@DepartmentName varchar(255),
+	@SupervisorLastName varchar(255),
+	@SupervisorFirstName varchar(255),
+	@JobTitle varchar(50),
+	@EmployeeLevel varchar(255),
+	@Salary money
+AS
+BEGIN
+	DECLARE @SupervisorKey int;
+	EXEC dbo.RSE_SP_GetEmployeeKey @SupervisorFirstName, @SupervisorLastName, @EmployeeKeyOut = @SupervisorKey OUTPUT;
+	DECLARE @DepartmentKey int;
+	EXEC dbo.RSE_SP_GetDeparmentKey @DepartmentName, @DepartmentKeyOut = @DepartmentKey OUTPUT;
+	DECLARE @EmployeeLevelKey int;
+	EXEC dbo.RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKeyOut = @EmployeeLevelKey OUTPUT;
+
+	BEGIN TRY
+		SET NOCOUNT ON;
+		SET XACT_ABORT ON;
+		BEGIN TRANSACTION
+			INSERT INTO dbo.Employees
+			(
+				LastName,
+				FirstName,
+				Email,
+				Hired,
+				DepartmentKey,
+				CurrentSupervisorEmployeeKey
+			)
+			VALUES
+			(
+				@LastName,
+				@FirstName,
+				@Email,
+				@Hired,
+				@DepartmentKey,
+				@SupervisorKey
+			)
+
+			INSERT INTO dbo.EmployeeJobs
+			(
+				EmployeeKey,
+				EmployeeLevelKey,
+				JobStart,
+				Title,
+				SupervisorEmployeeKey,
+				Salary
+			)
+			VALUES
+			(
+				SCOPE_IDENTITY(),
+				@EmployeeLevelKey,
+				GETDATE(),
+				@JobTitle,
+				@SupervisorKey,
+				@Salary
+			)
+		COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT('Employee Insertion FAILED. Transactions rolled back.')
+	END CATCH
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeJob
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@EmployeeLevel varchar(255),
+	@SupervisorFirstName varchar(255),
+	@SupervisorLastName varchar(255),
+	@Salary money,
+	@Title varchar(50),
+	@StartDate date = NULL,
+	@EndDate date = NULL
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT;
+	DECLARE @SupervisorKey int;
+	EXEC RSE_SP_GetEmployeeKey @SupervisorFirstName, @SupervisorLastName, @EmployeeKeyOut = @SupervisorKey OUTPUT;
+	DECLARE @EmployeeLevelKey int;
+	EXEC RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKeyOut = @EmployeeLevelKey OUTPUT;
+	IF @StartDate IS NULL
+	BEGIN
+		SET @StartDate = GETDATE()
+	END
+	IF @EndDate IS NULL
+	BEGIN
+		SET @EndDate = GETDATE()-1
+	END
+
+	IF @EmployeeKey > 0
+	AND @SupervisorKey > 0
+	AND @EmployeeLevelKey > 0
+	BEGIN
+		BEGIN TRY
+			UPDATE EmployeeJobs
+			SET JobFinish = @EndDate
+			WHERE EmployeeKey = @EmployeeKey
+				AND JobFinish IS NULL
+			
+			INSERT INTO EmployeeJobs
+			(
+				EmployeeKey,
+				EmployeeLevelKey,
+				JobStart,
+				Title,
+				SupervisorEmployeeKey,
+				Salary
+			)
+			VALUES
+			(
+				@EmployeeKey,
+				@EmployeeLevelKey,
+				@StartDate,
+				@Title,
+				@SupervisorKey,
+				@Salary
+			)
+		END TRY
+		BEGIN CATCH
+			PRINT('Updating EmployeeJob Failed!')
+		END CATCH
+	END
+	ELSE IF @EmployeeKey <= 0
+	OR @SupervisorKey <= 0
+	BEGIN
+		PRINT('Employee Name and/or Supervisor Name invalid. Update EmployeeJob terminated')
+	END
+	ELSE IF @EmployeeLevelKey <= 0 OR @EmployeeLevelKey IS NULL
+	BEGIN
+		PRINT('EmployeeLevel specified invalid. Update EmployeeJob terminated.')
+	END
+END
+GO
+
+--Testing
+DECLARE @Test int;
+EXEC RSE_SP_UpdateEmployeeJob 'Eric', 'Barnes', 'Grunt', 'Russell', 'Reed', 55000, 'Developer 2'
+GO
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_UpdateEmployeeDepartment
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@NewDepartmentName varchar(255)
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC dbo.RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT
+	IF @EmployeeKey != 0
+	BEGIN
+		DECLARE @NewDepartmentKey int;
+		SET @NewDepartmentKey = 0;
+			SELECT
+				@NewDepartmentKey = DepartmentKey
+			FROM
+				Departments
+			WHERE
+				@NewDepartmentName = Department
+		IF @NewDepartmentKey = 0
+		BEGIN
+			PRINT('Department: ' + @NewDepartmentName + ' Was not found. Update terminated.')
+		END
+		ELSE
+		BEGIN
+			BEGIN TRY
+				UPDATE dbo.Employees
+				SET DepartmentKey = @NewDepartmentKey
+				WHERE EmployeeKey = @EmployeeKey
+				PRINT('Changed Employee ' + @FirstName + @LastName + ' Department to ' + @NewDepartmentName)
+			END TRY
+			BEGIN CATCH
+				PRINT('UPDATE Employee FAILED. Failed to update ' + @FirstName + ' ' + @LastName + 's department to ' + @NewDepartmentName)
+			END CATCH
+		END
+	END
+END
+GO
+
+--Testing invalid name and department.
+/*
+EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'Business Intelligence';
+EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barned', 'Information Technology';
+EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'New Department';
+EXEC RSE_SP_UpdateEmployeeDepartment 'Eric', 'Barnes', 'Information Technology';
+*/
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_ReturnComputer
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@ComputerType varchar(25),
+	@ReturnComputerIndex int = 1
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT;
+	DECLARE @ComputerTypeKey int;
+	EXEC RSE_SP_GetComputerTypeKey @ComputerType, @ComputerTypeKeyOut = @ComputerTypeKey OUTPUT;
+	DECLARE @AssignedStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @ComputerStatusKeyOut = @AssignedStatus OUTPUT
+	DECLARE @AvailableStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Available', @ComputerStatusKeyOut = @AvailableStatus OUTPUT
+
+	SET NOCOUNT ON;
+	SET XACT_ABORT ON;
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @ModifiedComputerKey int;
+		SET @ModifiedComputerKey = (
+			SELECT
+			LEAD(AssignedKeys.ComputerKey, @ReturnComputerIndex, -1) OVER (ORDER BY ComputerTypeKey) AS 'ReturnKey'
+			FROM
+				(
+				SELECT
+					ComputerKey
+				FROM
+					EmployeeComputers
+				WHERE
+					EmployeeKey = @EmployeeKey
+					AND Returned IS NULL
+				) AS AssignedKeys
+				INNER JOIN Computers AS c ON AssignedKeys.ComputerKey = c.ComputerKey
+			WHERE ComputerTypeKey = @ComputerTypeKey
+			AND ComputerStatusKey = @AssignedStatus)
+		IF @ModifiedComputerKey != -1
+		BEGIN
+			UPDATE dbo.Computers
+			SET ComputerStatusKey = @AvailableStatus
+			WHERE ComputerKey = @ModifiedComputerKey
+
+			UPDATE dbo.EmployeeComputers
+			SET Returned = GETDATE()
+			WHERE ComputerKey = @ModifiedComputerKey
+		END
+		ELSE
+		BEGIN
+			PRINT('Failed to select a valid computer to return.')
+		END
+		COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT('Failed to insert. Transaction rolled back.')
+	END CATCH
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_TerminateEmployee
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@TerminationDate date = GETDATE
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT;
+	DECLARE @AssignedStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @ComputerStatusKeyOut = @AssignedStatus OUTPUT;
+	DECLARE @AvailableStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Available', @ComputerStatusKeyOut = @AvailableStatus OUTPUT;
+	SET NOCOUNT ON;
+	SET XACT_ABORT ON;
+	BEGIN TRANSACTION
+	--TODO: Needs THOROUGH checking
+	BEGIN TRY
+		WHILE ((
+			SELECT 
+				* 
+			FROM 
+				EmployeeComputers 
+			WHERE
+				Returned IS NOT NULL
+				AND EmployeeKey = @EmployeeKey) IS NOT NULL)
+		BEGIN
+			DECLARE @UpdateKey int;
+			SET @UpdateKey = (
+				SELECT 
+					FIRST_VALUE(ComputerKey) OVER (ORDER BY EmployeeKey)
+				FROM 
+					EmployeeComputers 
+				WHERE
+					Returned IS NOT NULL
+					AND EmployeeKey = @EmployeeKey)
+
+			UPDATE dbo.Computers
+			SET ComputerStatusKey = @AvailableStatus
+			WHERE ComputerKey = @UpdateKey
+
+			UPDATE dbo.EmployeeComputers
+			SET Returned = GETDATE()
+			WHERE ComputerKey = @UpdateKey
+		END
+		UPDATE dbo.EmployeeJobs
+		SET JobFinish = @TerminationDate
+		WHERE EmployeeKey = @EmployeeKey
+
+		UPDATE dbo.Employees
+		SET Terminated = @TerminationDate
+		WHERE EmployeeKey = @EmployeeKey
+		COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT('Termination of ' + @FirstName + ' ' + @LastName + ' Failed.')
+	END CATCH
+END
+GO
+
+--Retrieves the first available computer of type Available
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_GetFirstAvailableComputerKey
+	@ComputerType varchar(25),
+	@ComputerKey int OUTPUT
+AS
+BEGIN
+	SET @ComputerKey = -1;
+	DECLARE @ComputerTypeKey int;
+	SET @ComputerTypeKey = 0;
+		SELECT
+			@ComputerTypeKey = ComputerTypeKey
+		FROM
+			ComputerTypes
+		WHERE
+			ComputerType = @ComputerType
+	IF @ComputerTypeKey = 0
+	BEGIN
+		PRINT('No Computer Type found of ' + @ComputerType)
+	END
+	ELSE
+	BEGIN
+		DECLARE @StatusAvailable int;
+		DECLARE @StatusNew int;
+		SELECT
+			@StatusAvailable = ComputerStatusKey
+		FROM
+			ComputerStatuses
+		WHERE
+			ComputerStatus = 'Available'
+
+		SELECT
+			@StatusNew = ComputerStatusKey
+		FROM
+			ComputerStatuses
+		WHERE
+			ComputerStatus = 'New'
+
+		SELECT
+			@ComputerKey = FIRST_VALUE(ComputerKey) OVER (ORDER BY ComputerStatusKey DESC)
+		FROM
+			Computers
+		WHERE
+			ComputerTypeKey = @ComputerTypeKey
+			AND ComputerStatusKey IN (@StatusAvailable, @StatusNew)
+		
+		IF @ComputerKey = -1
+		BEGIN
+			PRINT('No computer of Type ' + @ComputerType + ' found')
+		END
+	END
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_AssignComputer
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@ComputerType varchar(25)
+AS
+BEGIN
+	DECLARE @ComputerKey int;
+	EXEC dbo.RSE_SP_GetFirstAvailableComputerKey @ComputerType, @ComputerKey
+	DECLARE @EmployeeKey int;
+	EXEC dbo.RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT
+	DECLARE @EmployeeComputerKey int;
+	IF @ComputerKey >= 0 AND @EmployeeKey > 0
+	BEGIN
+		BEGIN TRY
+			INSERT INTO EmployeeComputers
+			(
+				EmployeeKey,
+				ComputerKey,
+				Assigned
+			)
+			VALUES
+			(
+				@EmployeeKey,
+				@ComputerKey,
+				GETDATE()
+			)
+
+			BEGIN TRY
+				UPDATE dbo.Computers
+				SET ComputerStatusKey = (
+					SELECT
+						ComputerStatusKey
+					FROM
+						ComputerStatuses
+					WHERE
+						ComputerStatus = 'Assigned')
+				WHERE ComputerKey = @ComputerKey
+			END TRY
+			BEGIN CATCH
+				PRINT('FAILED to update Computers Status')
+			END CATCH
+		END TRY
+		BEGIN CATCH
+			PRINT('INSERT INTO EmployeeComputers FAILED. Computer Type: ' + @ComputerType)
+		END CATCH
+	END
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_ReportLostComputer
+	@FirstName varchar(255),
+	@LastName varchar(255),
+	@ComputerType varchar(25),
+	@LostComputerIndex int = 1
+AS
+BEGIN
+	DECLARE @EmployeeKey int;
+	EXEC RSE_SP_GetEmployeeKey @FirstName, @LastName, @EmployeeKeyOut = @EmployeeKey OUTPUT;
+	DECLARE @ComputerTypeKey int;
+	EXEC RSE_SP_GetComputerTypeKey @ComputerType, @ComputerTypeKeyOut = @ComputerTypeKey OUTPUT;
+	DECLARE @AssignedStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Assigned', @ComputerStatusKeyOut = @AssignedStatus OUTPUT
+	DECLARE @AvailableStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Available', @ComputerStatusKeyOut = @AvailableStatus OUTPUT
+	DECLARE @LostStatus int;
+	EXEC RSE_SP_GetComputerStatusKey 'Lost', @ComputerStatusKeyOut = @LostStatus OUTPUT
+
+	SET NOCOUNT ON;
+	SET XACT_ABORT ON;
+	BEGIN TRANSACTION
+	BEGIN TRY
+		DECLARE @ModifiedComputerKey int;
+		SET @ModifiedComputerKey = (
+			SELECT
+			LEAD(AssignedKeys.ComputerKey, @LostComputerIndex, -1) OVER (ORDER BY ComputerTypeKey) AS 'ReturnKey'
+			FROM
+				(
+				SELECT
+					ComputerKey
+				FROM
+					EmployeeComputers
+				WHERE
+					EmployeeKey = @EmployeeKey
+					AND Returned IS NULL
+				) AS AssignedKeys
+				INNER JOIN Computers AS c ON AssignedKeys.ComputerKey = c.ComputerKey
+			WHERE ComputerTypeKey = @ComputerTypeKey
+			AND ComputerStatusKey = @AssignedStatus)
+		IF @ModifiedComputerKey != -1
+		BEGIN
+			UPDATE dbo.Computers
+			SET ComputerStatusKey = @LostStatus
+			WHERE ComputerKey = @ModifiedComputerKey
+
+			UPDATE dbo.EmployeeComputers
+			SET Returned = GETDATE()
+			WHERE ComputerKey = @ModifiedComputerKey
+		END
+		ELSE
+		BEGIN
+			PRINT('Failed to select a valid computer to return.')
+		END
+		COMMIT TRANSACTION
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION
+		PRINT('Failed to insert. Transaction rolled back.')
+	END CATCH
+END
+GO
+
+/*
+CREATE OR ALTER PROCEDURE dbo.RSE_SP_CreateComputer
+	@Brand varchar(50),
+	@SerialNumber varchar(20),
+	@CPU varchar(50),
+	@Memory varchar(5),
+	@StorageDevicesList varchar(255)
+*/
+
+/*
 - Functions to write
 
 	- Write a function that calculates how much a computer is currently
@@ -304,7 +1020,9 @@ END
 		their current salary, their current title, the date they last
 		recieved their last increase (if any), and the percentage increase 
 		that raise was
+*/
 
+/*
  - Triggers that need to be written
 
 	- I don't trust people when they have full access to my database.  Write
