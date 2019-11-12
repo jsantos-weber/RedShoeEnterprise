@@ -368,3 +368,114 @@ Once you have everything done, complete the following:
 Include your lengthly script as part of your submission
 
 */
+	--Query 1 
+DECLARE @StartDate DATE = '2015-01-01'
+	, @EndDate DATE = '2016-07-05' 
+
+SELECT 
+	[E].EmployeeKey 
+	,[E].FirstName + ' ' + [E].LastName AS EmployeeName
+	,[E].Email, Title
+	,[S].FirstName + ' ' + [S].LastName AS SupervisorName 
+	,Department
+	,JobStart
+FROM 
+	Employees [E]
+	LEFT JOIN EmployeeJobs [EJ] ON [E].EmployeeKey = [EJ].EmployeeKey
+	LEFT JOIN Employees [S] ON [S].CurrentSupervisorEmployeeKey = [E].EmployeeKey
+	LEFT JOIN Departments [D] ON [D].DepartmentKey = [E].DepartmentKey
+WHERE 
+	[E].Terminated IS NULL
+	AND JobStart BETWEEN @StartDate AND @EndDate
+
+--Query 2 NOT DONE 
+
+SELECT [C].ComputerKey, PurchaseDate, PurchaseCost, ComputerDetails
+FROM Computers [C]
+LEFT JOIN ComputerStatuses [CS] ON [C].ComputerStatusKey = [CS].ComputerStatusKey
+WHERE [CS].ComputerStatus IN ('Lost','Retired')
+
+--Insert 5 new Employees
+SET IDENTITY_INSERT Employees ON
+INSERT Employees (EmployeeKey, LastName, FirstName, Email, Hired, DepartmentKey, CurrentSupervisorEmployeeKey) VALUES
+	(6, 'Bossman', 'Mister', 'mister@mythicalCompany.com', '6/15/2016', 2,  1),
+	(7, 'Buttes', 'Seymour', 'seymour@mythicalCompany.com', '6/15/2016', 3, 6),
+	(8, 'Hug', 'Amanda', 'amanda@mythicalCompany.com', '6/15/2016', 3, 6),
+	(9, 'Kaholic', 'Al', 'al@mythicalCompany.com', '6/15/2016', 3, 6),
+	(10, 'Star', 'Patrick', 'Patrick@mythicalCompany.com', '6/15/2016', 1, 6)
+SET IDENTITY_INSERT Employees OFF
+
+INSERT EmployeeJobs (EmployeeKey, JobStart, JobFinish, Title, SupervisorEmployeeKey, Salary, EmployeeLevelKey) VALUES
+	(6, '6/15/2016', NULL, 'Director, IT Development', 4, 80000, 4),
+	(7, '6/15/2016', NULL, 'Director, Analytics', 4, 70000, 3),
+	(8, '6/15/2016', NULL, 'VP, Technology & Analytics', 4, 60000, 2),
+	(9, '6/15/2016', NULL, 'Developer 3', 1, 50000, 1),
+	(10, '6/15/2016', NULL, 'Rookie Developer', 1, 50000, 1)
+
+--Insert 5 Computers
+INSERT Computers (ComputerTypeKey, ComputerStatusKey, PurchaseDate, PurchaseCost, ComputerDetails) VALUES
+	(1,0,'1/1/2015',$1399.99,'Fancy Pants Laptop'),
+	(1,5,'1/1/2015',$999.99,'OK Laptop'),
+	(2,1,'1/1/2015',$1099.99,'Decent Desktop'),
+	(2,1,'1/1/2015',$1299.99,'Fancy Pants Desktop'),
+	(2,2,'1/1/2015',$1199.99,'Decent Desktop')
+SET IDENTITY_INSERT Computers OFF
+
+INSERT EmployeeComputers (EmployeeKey, ComputerKey, Assigned, Returned) VALUES
+	(6,1,'6/15/2016',NULL),
+	(7,2,'6/15/2016',NULL),
+	(8,3,'6/15/2016',NULL),
+	(9,4,'6/15/2016',NULL),
+	(10,5,'6/15/2016',NULL)
+
+--Change the Salary of 3 people at the grunt Level
+UPDATE EmployeeJobs
+SET Salary = 55000.0
+WHERE EmployeeKey 
+IN (
+	SELECT TOP 3 [E].EmployeeKey
+	FROM Employees [E]
+	LEFT JOIN EmployeeJobs [EJ] ON [E].EmployeeKey = [EJ].EmployeeKey
+	LEFT JOIN EmployeeLevels [EL] ON [EL].EmployeeLevelKey = [EJ].EmployeeLevelKey
+	WHERE EmployeeLevel = 'Grunt'
+)
+
+-- Create a new Department
+SET IDENTITY_INSERT Departments ON
+INSERT Departments (DepartmentKey, Department) VALUES
+	(5, 'Research')
+SET IDENTITY_INSERT Departments OFF
+
+UPDATE Employees
+SET DepartmentKey = 5
+WHERE EmployeeKey = 9
+
+-- Change someone to a new supervisor and give them a new title
+UPDATE Employees
+SET CurrentSupervisorEmployeeKey = 6
+WHERE EmployeeKey = 3
+
+UPDATE EmployeeJobs
+SET Title = 'Super VP, Technology & Analytics'
+WHERE EmployeeKey = 3
+
+-- Terminate Two Employees 
+--NOT DONE, NEED TO CHECK THE VIEW PART
+UPDATE Employees
+SET Terminated = '11/12/2019'
+WHERE EmployeeKey IN (9,10)
+--Have a computer be Lost
+UPDATE Computers
+SET ComputerStatusKey = 3
+WHERE ComputerKey = 3
+--Try to Delete all your managers, Make sure Trigger Fires
+--NOT DONE, NEED TO CHECK THE TRIGGER
+DELETE FROM Employees
+WHERE EmployeeKey IN (
+SELECT [E].EmployeeKey 
+FROM Employees [E]
+LEFT JOIN  EmployeeJobs [EJ] ON [E].EmployeeKey = [EJ].EmployeeKey
+LEFT JOIN  EmployeeLevels [EL] ON [EJ].EmployeeLevelKey = [EL].EmployeeLevelKey
+WHERE EmployeeLevel = 'Manager'
+)
+--Select all records from your two views, See if you can find any errors that occured 
