@@ -1186,12 +1186,16 @@ WHERE
 	[E].Terminated IS NULL
 	AND JobStart BETWEEN @StartDate AND @EndDate
 
---Query 2 NOT DONE 
+--Query 2
 
-SELECT [C].ComputerKey, PurchaseDate, PurchaseCost, ComputerDetails
-FROM Computers [C]
+SELECT [C].ComputerKey, PurchaseDate, PurchaseCost,dbo.RSE_CalcCompValue(PurchaseDate,PurchaseCost) AS CurrentValue, ComputerDetails, EmployeeKey, Assigned, Returned 
+FROM Computers [C] 
 LEFT JOIN ComputerStatuses [CS] ON [C].ComputerStatusKey = [CS].ComputerStatusKey
+LEFT JOIN EmployeeComputers [EC] ON [C].ComputerKey = [EC].ComputerKey
 WHERE [CS].ComputerStatus IN ('Lost','Retired')
+
+
+SELECT dbo.RSE_CalcCompValue('2015-01-01',999.99)
 
 --Insert 5 new Employees
 SET IDENTITY_INSERT Employees ON
@@ -1239,10 +1243,8 @@ IN (
 )
 
 -- Create a new Department
-SET IDENTITY_INSERT Departments ON
-INSERT Departments (DepartmentKey, Department) VALUES
-	(5, 'Research')
-SET IDENTITY_INSERT Departments OFF
+EXEC RSE_SP_CreateDepartment 'Research',5 
+
 
 UPDATE Employees
 SET DepartmentKey = 5
@@ -1258,18 +1260,18 @@ SET Title = 'Super VP, Technology & Analytics'
 WHERE EmployeeKey = 3
 
 -- Terminate Two Employees 
---NOT DONE, NEED TO CHECK THE VIEW PART
-UPDATE Employees
-SET Terminated = '11/12/2019'
-WHERE EmployeeKey IN (9,10)
+
+EXECUTE RSE_SP_TerminateEmployee 'Al','Kaholic','11/12/2019'
+EXECUTE RSE_SP_TerminateEmployee 'Patrick','Star','11/12/2019'
+
+SELECT * FROM RSE_Active_Computers
 
 --Have a computer be Lost
 UPDATE Computers
 SET ComputerStatusKey = 3
 WHERE ComputerKey = 3
 
---Try to Delete all your managers, Make sure Trigger Fires
---NOT DONE, NEED TO CHECK THE TRIGGER
+--Try to Delete Managers
 DELETE FROM Employees
 WHERE EmployeeKey IN (
 SELECT [E].EmployeeKey 
@@ -1279,3 +1281,6 @@ LEFT JOIN  EmployeeLevels [EL] ON [EJ].EmployeeLevelKey = [EL].EmployeeLevelKey
 WHERE EmployeeLevel = 'Manager'
 )
 --Select all records from your two views, See if you can find any errors that occured 
+
+SELECT * FROM RSE_Active_Computers
+SELECT * FROM RSE_Current_Employees
