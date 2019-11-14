@@ -489,6 +489,25 @@ BEGIN
 	DECLARE @EmployeeLevelKey int;
 	EXEC dbo.RSE_SP_GetEmployeeLevelKey @EmployeeLevel, @EmployeeLevelKeyOut = @EmployeeLevelKey OUTPUT;
 
+DROP TABLE IF EXISTS #Test
+SELECT @FirstName AS FName, @LastName AS LName, @Email AS EM
+INTO #Test
+
+
+DROP TABLE IF EXISTS #Exists
+SELECT * 
+INTO #Exists
+FROM(
+SELECT E.*
+FROM Employees	 E
+LEFT JOIN #Test T ON FirstName = FName AND LastName = LName AND Email = EM
+) AS [Exists]
+
+IF (SELECT COUNT(1) FROM #Exists) <> 0 
+SELECT 'Employee Already Exists In the System'
+
+
+
 	BEGIN TRY
 		SET NOCOUNT ON;
 		SET XACT_ABORT ON;
@@ -1045,13 +1064,13 @@ GO
 CREATE VIEW RSE_Current_Employees AS
   	SELECT 
 		E.FirstName + ' ' + E.LastName AS "Employee",
-		S.FirstName + ' ' + S.LastName AS "Current Supervisor",
-		EJ.Salary,
-		EJ.Title,
+		ISNULL(S.FirstName + ' ' + S.LastName,'N/A') AS "Supervising",
+		ISNULL(EJ.Salary,$0.0) AS Salary,
+		ISNULL(EJ.Title,'N/A') AS Title,
 		CASE
 			WHEN EJ.JobStart = E.Hired
-				THEN 'NONE'
-			ELSE CONVERT(varchar(10),EJ.JobStart,20)
+				THEN ISNULL('NONE','NONE')
+			ELSE ISNULL(CONVERT(varchar(10),EJ.JobStart,20),'N/A')
 		END AS "LAST INCREASE",
 		
 		CASE 
@@ -1064,15 +1083,12 @@ CREATE VIEW RSE_Current_Employees AS
 
 	FROM
 		dbo.Employees E
-		LEFT JOIN
-		dbo.Employees S
+		LEFT JOIN dbo.Employees S
 		ON S.CurrentSupervisorEmployeeKey = E.EmployeeKey
-		LEFT JOIN
-		dbo.EmployeeJobs EJ
-		ON EJ.EmployeeKey = E.EmployeeKey
-		LEFT JOIN
-		EmployeeJobs B
-		ON(B.EmployeeKey = E.EmployeeKey)
+		LEFT JOIN dbo.EmployeeJobs EJ
+		ON EJ.EmployeeKey = E.EmployeeKey AND EJ.JobFinish is NULL
+		LEFT JOIN EmployeeJobs B
+		ON(B.EmployeeKey = E.EmployeeKey) AND B.JobFinish is NULL
 		LEFT JOIN 
 		(
 			SELECT 
@@ -1099,8 +1115,7 @@ CREATE VIEW RSE_Current_Employees AS
 			GROUP BY A.EmployeeJobKey, A.EmployeeKey, A.Salary
 		) AS C 
 		ON (C.EmployeeKey = B.EmployeeKey)
-	WHERE EJ.JobFinish is NULL
-	    AND B.JobFinish IS NULL
+
 GO
 /*
  - Triggers that need to be written
